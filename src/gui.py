@@ -13,6 +13,27 @@ from src.models import Product
 
 _SORT_OPTIONS = ("name", "sku", "category", "quantity", "unit_price")
 
+_BG_WINDOW = "#F1F5F9"
+_BG_HEADER = "#1E293B"
+_BG_CARD = "#FFFFFF"
+_BG_ZEBRA = "#F8FAFC"
+_BG_STATUS = "#E2E8F0"
+_BORDER_SUBTLE = "#CBD5E1"
+_TEXT_PRIMARY = "#0F172A"
+_TEXT_SECONDARY = "#334155"
+_TEXT_MUTED = "#64748B"
+_TEXT_SUBTITLE = "#94A3B8"
+_PRIMARY_BLUE = "#2563EB"
+_PRIMARY_BLUE_HOVER = "#1D4ED8"
+_EMERALD = "#059669"
+_EMERALD_HOVER = "#047857"
+_DANGER_RED = "#DC2626"
+_DANGER_RED_HOVER = "#B91C1C"
+_SLATE_BTN = "#E2E8F0"
+_SLATE_BTN_HOVER = "#CBD5E1"
+_LOW_STOCK_BG = "#FEE2E2"
+_LOW_STOCK_FG = "#991B1B"
+
 
 class StockFlowGUI:
     """Desktop Tkinter front end delegating all business logic to InventoryManager."""
@@ -30,16 +51,18 @@ class StockFlowGUI:
         )
 
         self.root.title("StockFlow — Inventory & Stock Control")
-        self.root.geometry("1040x640")
-        self.root.minsize(860, 520)
+        self.root.geometry("1100x680")
+        self.root.minsize(900, 560)
+        self.root.configure(background=_BG_WINDOW)
 
         self._summary_vars: dict[str, tk.StringVar] = {
-            "total_skus": tk.StringVar(value="Total SKUs: 0"),
-            "total_units": tk.StringVar(value="Total Units: 0"),
-            "total_value": tk.StringVar(value="Total Value: $0.00"),
-            "low_stock_count": tk.StringVar(value="Low Stock: 0"),
-            "category_count": tk.StringVar(value="Categories: 0"),
+            "total_skus": tk.StringVar(value="0"),
+            "total_units": tk.StringVar(value="0"),
+            "total_value": tk.StringVar(value="£0.00"),
+            "low_stock_count": tk.StringVar(value="0"),
+            "category_count": tk.StringVar(value="0"),
         }
+        self._summary_value_labels: dict[str, tk.Label] = {}
         self._search_var = tk.StringVar()
         self._category_var = tk.StringVar(value="All")
         self._sku_lookup_var = tk.StringVar()
@@ -48,135 +71,364 @@ class StockFlowGUI:
         self._low_stock_only_var = tk.BooleanVar(value=False)
         self._status_var = tk.StringVar(value="Ready.")
 
+        self._configure_styles()
         self._build_layout()
         self._bind_events()
         self._load_on_startup()
         self.refresh_view()
 
-    def _build_layout(self) -> None:
-        """Build the responsive Tkinter layout using ttk widgets."""
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(2, weight=1)
+    def _configure_styles(self) -> None:
+        """Configure the modern clam ttk theme, typography, and button styles."""
+        style = ttk.Style(self.root)
+        style.theme_use("clam")
 
+        style.configure(
+            ".",
+            font=("Segoe UI", 9),
+            background=_BG_WINDOW,
+            foreground=_TEXT_PRIMARY,
+        )
+        style.configure(
+            "Card.TCheckbutton",
+            background=_BG_CARD,
+            foreground=_TEXT_PRIMARY,
+            font=("Segoe UI", 9),
+        )
+        style.map(
+            "Card.TCheckbutton",
+            background=[("active", _BG_CARD)],
+        )
+        style.configure(
+            "Modern.TEntry",
+            fieldbackground="#FFFFFF",
+            foreground=_TEXT_PRIMARY,
+            bordercolor=_BORDER_SUBTLE,
+            padding=(6, 5),
+        )
+        style.configure(
+            "Modern.TCombobox",
+            fieldbackground="#FFFFFF",
+            background="#FFFFFF",
+            foreground=_TEXT_PRIMARY,
+            bordercolor=_BORDER_SUBTLE,
+            padding=(6, 4),
+        )
+
+        # Styled action buttons
+        style.configure(
+            "Primary.TButton",
+            font=("Segoe UI", 9, "bold"),
+            background=_PRIMARY_BLUE,
+            foreground="#FFFFFF",
+            borderwidth=0,
+            padding=(14, 7),
+        )
+        style.map(
+            "Primary.TButton",
+            background=[("active", _PRIMARY_BLUE_HOVER)],
+            foreground=[("active", "#FFFFFF")],
+        )
+
+        style.configure(
+            "Success.TButton",
+            font=("Segoe UI", 9, "bold"),
+            background=_EMERALD,
+            foreground="#FFFFFF",
+            borderwidth=0,
+            padding=(14, 7),
+        )
+        style.map(
+            "Success.TButton",
+            background=[("active", _EMERALD_HOVER)],
+            foreground=[("active", "#FFFFFF")],
+        )
+
+        style.configure(
+            "Danger.TButton",
+            font=("Segoe UI", 9, "bold"),
+            background=_DANGER_RED,
+            foreground="#FFFFFF",
+            borderwidth=0,
+            padding=(14, 7),
+        )
+        style.map(
+            "Danger.TButton",
+            background=[("active", _DANGER_RED_HOVER)],
+            foreground=[("active", "#FFFFFF")],
+        )
+
+        style.configure(
+            "Neutral.TButton",
+            font=("Segoe UI", 9),
+            background=_SLATE_BTN,
+            foreground=_TEXT_PRIMARY,
+            borderwidth=0,
+            padding=(12, 7),
+        )
+        style.map(
+            "Neutral.TButton",
+            background=[("active", _SLATE_BTN_HOVER)],
+            foreground=[("active", _TEXT_PRIMARY)],
+        )
+
+        # Treeview styling
+        style.configure(
+            "Stock.Treeview",
+            background=_BG_CARD,
+            fieldbackground=_BG_CARD,
+            foreground=_TEXT_PRIMARY,
+            rowheight=28,
+            font=("Segoe UI", 9),
+            borderwidth=0,
+        )
+        style.configure(
+            "Stock.Treeview.Heading",
+            background=_TEXT_SECONDARY,
+            foreground="#FFFFFF",
+            font=("Segoe UI", 9, "bold"),
+            padding=(8, 6),
+            relief="flat",
+        )
+        style.map(
+            "Stock.Treeview.Heading",
+            background=[("active", _BG_HEADER)],
+            foreground=[("active", "#FFFFFF")],
+        )
+        style.map(
+            "Stock.Treeview",
+            background=[("selected", _PRIMARY_BLUE)],
+            foreground=[("selected", "#FFFFFF")],
+        )
+
+    def _build_layout(self) -> None:
+        """Build the responsive Tkinter layout using header, KPI cards, and table."""
+        self.root.columnconfigure(0, weight=1)
+        self.root.rowconfigure(3, weight=1)
+
+        self._build_header_banner()
         self._build_summary_bar()
         self._build_toolbar()
         self._build_inventory_table()
         self._build_action_bar()
         self._build_status_bar()
 
-    def _build_summary_bar(self) -> None:
-        """Create the top bar displaying live inventory analytics."""
-        summary_frame = ttk.LabelFrame(
-            self.root, text="Inventory Summary", padding=(12, 8)
-        )
-        summary_frame.grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 6))
+    def _build_header_banner(self) -> None:
+        """Create the sleek dark navy top header banner."""
+        header = tk.Frame(self.root, bg=_BG_HEADER, padx=20, pady=12)
+        header.grid(row=0, column=0, sticky="ew")
 
-        keys = (
-            "total_skus",
-            "total_units",
-            "total_value",
-            "low_stock_count",
-            "category_count",
-        )
-        for col, key in enumerate(keys):
-            summary_frame.columnconfigure(col, weight=1)
-            label = ttk.Label(
-                summary_frame,
-                textvariable=self._summary_vars[key],
-                font=("TkDefaultFont", 10, "bold"),
+        tk.Label(
+            header,
+            text="StockFlow",
+            font=("Segoe UI", 18, "bold"),
+            fg="#FFFFFF",
+            bg=_BG_HEADER,
+            anchor="w",
+        ).pack(side="left")
+
+        tk.Label(
+            header,
+            text="Inventory & Stock Control System",
+            font=("Segoe UI", 10),
+            fg=_TEXT_SUBTITLE,
+            bg=_BG_HEADER,
+            anchor="w",
+        ).pack(side="left", padx=(12, 0), pady=(5, 0))
+
+    def _build_summary_bar(self) -> None:
+        """Create five white KPI summary cards for live inventory metrics."""
+        cards_row = tk.Frame(self.root, bg=_BG_WINDOW, padx=16, pady=12)
+        cards_row.grid(row=1, column=0, sticky="ew")
+
+        card_specs: list[tuple[str, str, str]] = [
+            ("total_skus", "TOTAL SKUS", _TEXT_PRIMARY),
+            ("total_units", "TOTAL UNITS", _TEXT_PRIMARY),
+            ("total_value", "TOTAL VALUE (£)", _EMERALD),
+            ("low_stock_count", "LOW STOCK", _TEXT_PRIMARY),
+            ("category_count", "CATEGORIES", _TEXT_PRIMARY),
+        ]
+
+        for col, (key, title_text, value_color) in enumerate(card_specs):
+            cards_row.columnconfigure(col, weight=1, uniform="kpi")
+            card = tk.Frame(
+                cards_row,
+                bg=_BG_CARD,
+                highlightbackground=_BORDER_SUBTLE,
+                highlightthickness=1,
+                padx=14,
+                pady=10,
             )
-            label.grid(row=0, column=col, sticky="w", padx=6)
+            padx = (0, 8) if col < len(card_specs) - 1 else (0, 0)
+            card.grid(row=0, column=col, sticky="ew", padx=padx)
+
+            tk.Label(
+                card,
+                text=title_text,
+                font=("Segoe UI", 8, "bold"),
+                fg=_TEXT_MUTED,
+                bg=_BG_CARD,
+                anchor="w",
+            ).pack(fill="x")
+
+            value_label = tk.Label(
+                card,
+                textvariable=self._summary_vars[key],
+                font=("Segoe UI", 16, "bold"),
+                fg=value_color,
+                bg=_BG_CARD,
+                anchor="w",
+            )
+            value_label.pack(fill="x", pady=(3, 0))
+            self._summary_value_labels[key] = value_label
 
     def _build_toolbar(self) -> None:
-        """Create the search, category filter, SKU lookup, and sort toolbar."""
-        toolbar = ttk.LabelFrame(
-            self.root, text="Search, Filter & Sort", padding=(12, 8)
+        """Create the search, filter, SKU lookup, and sort toolbar card."""
+        toolbar_wrapper = tk.Frame(self.root, bg=_BG_WINDOW, padx=16, pady=0)
+        toolbar_wrapper.grid(row=2, column=0, sticky="ew")
+        toolbar_wrapper.columnconfigure(0, weight=1)
+
+        toolbar = tk.Frame(
+            toolbar_wrapper,
+            bg=_BG_CARD,
+            highlightbackground=_BORDER_SUBTLE,
+            highlightthickness=1,
+            padx=14,
+            pady=10,
         )
-        toolbar.grid(row=1, column=0, sticky="ew", padx=12, pady=6)
+        toolbar.grid(row=0, column=0, sticky="ew")
         toolbar.columnconfigure(1, weight=1)
-        toolbar.columnconfigure(6, weight=1)
 
         # Row 0: Keyword search, Category filter, Low-stock toggle, Reset
-        ttk.Label(toolbar, text="Search:").grid(
-            row=0, column=0, sticky="w", padx=(0, 6), pady=4
-        )
-        self._search_entry = ttk.Entry(
-            toolbar, textvariable=self._search_var, width=26
-        )
-        self._search_entry.grid(row=0, column=1, sticky="ew", padx=(0, 12), pady=4)
+        tk.Label(
+            toolbar,
+            text="Search:",
+            font=("Segoe UI", 9, "bold"),
+            fg=_TEXT_SECONDARY,
+            bg=_BG_CARD,
+        ).grid(row=0, column=0, sticky="w", padx=(0, 8), pady=4)
 
-        ttk.Label(toolbar, text="Category:").grid(
-            row=0, column=2, sticky="w", padx=(0, 6), pady=4
+        self._search_entry = ttk.Entry(
+            toolbar,
+            textvariable=self._search_var,
+            width=28,
+            style="Modern.TEntry",
         )
+        self._search_entry.grid(
+            row=0, column=1, sticky="ew", padx=(0, 14), pady=4
+        )
+
+        tk.Label(
+            toolbar,
+            text="Category:",
+            font=("Segoe UI", 9, "bold"),
+            fg=_TEXT_SECONDARY,
+            bg=_BG_CARD,
+        ).grid(row=0, column=2, sticky="w", padx=(0, 8), pady=4)
+
         self._category_combo = ttk.Combobox(
             toolbar,
             textvariable=self._category_var,
             values=("All",),
             state="readonly",
             width=18,
+            style="Modern.TCombobox",
         )
         self._category_combo.grid(
-            row=0, column=3, sticky="w", padx=(0, 12), pady=4
+            row=0, column=3, sticky="w", padx=(0, 14), pady=4
         )
 
         self._low_stock_check = ttk.Checkbutton(
             toolbar,
             text="Low Stock Only",
             variable=self._low_stock_only_var,
+            style="Card.TCheckbutton",
             command=self._on_filter_changed,
         )
         self._low_stock_check.grid(
-            row=0, column=4, sticky="w", padx=(0, 12), pady=4
+            row=0, column=4, sticky="w", padx=(0, 14), pady=4
         )
 
         ttk.Button(
-            toolbar, text="Reset Filters", command=self.reset_filters
+            toolbar,
+            text="Reset Filters",
+            style="Neutral.TButton",
+            command=self.reset_filters,
         ).grid(row=0, column=5, sticky="e", pady=4)
 
         # Row 1: Exact SKU binary lookup & Sort controls
-        ttk.Label(toolbar, text="Exact SKU:").grid(
-            row=1, column=0, sticky="w", padx=(0, 6), pady=4
-        )
-        sku_frame = ttk.Frame(toolbar)
-        sku_frame.grid(row=1, column=1, sticky="ew", padx=(0, 12), pady=4)
+        tk.Label(
+            toolbar,
+            text="Exact SKU:",
+            font=("Segoe UI", 9, "bold"),
+            fg=_TEXT_SECONDARY,
+            bg=_BG_CARD,
+        ).grid(row=1, column=0, sticky="w", padx=(0, 8), pady=4)
+
+        sku_frame = tk.Frame(toolbar, bg=_BG_CARD)
+        sku_frame.grid(row=1, column=1, sticky="ew", padx=(0, 14), pady=4)
         sku_frame.columnconfigure(0, weight=1)
 
         self._sku_lookup_entry = ttk.Entry(
-            sku_frame, textvariable=self._sku_lookup_var, width=18
+            sku_frame,
+            textvariable=self._sku_lookup_var,
+            width=18,
+            style="Modern.TEntry",
         )
-        self._sku_lookup_entry.grid(row=0, column=0, sticky="ew", padx=(0, 6))
+        self._sku_lookup_entry.grid(row=0, column=0, sticky="ew", padx=(0, 8))
         ttk.Button(
-            sku_frame, text="Find SKU", command=self._on_find_sku
+            sku_frame,
+            text="Find SKU",
+            style="Primary.TButton",
+            command=self._on_find_sku,
         ).grid(row=0, column=1, sticky="e")
 
-        ttk.Label(toolbar, text="Sort By:").grid(
-            row=1, column=2, sticky="w", padx=(0, 6), pady=4
-        )
+        tk.Label(
+            toolbar,
+            text="Sort By:",
+            font=("Segoe UI", 9, "bold"),
+            fg=_TEXT_SECONDARY,
+            bg=_BG_CARD,
+        ).grid(row=1, column=2, sticky="w", padx=(0, 8), pady=4)
+
         self._sort_combo = ttk.Combobox(
             toolbar,
             textvariable=self._sort_key_var,
             values=_SORT_OPTIONS,
             state="readonly",
             width=18,
+            style="Modern.TCombobox",
         )
-        self._sort_combo.grid(row=1, column=3, sticky="w", padx=(0, 12), pady=4)
+        self._sort_combo.grid(
+            row=1, column=3, sticky="w", padx=(0, 14), pady=4
+        )
 
         self._sort_desc_check = ttk.Checkbutton(
             toolbar,
             text="Descending",
             variable=self._sort_desc_var,
+            style="Card.TCheckbutton",
             command=self._on_filter_changed,
         )
         self._sort_desc_check.grid(
-            row=1, column=4, sticky="w", padx=(0, 12), pady=4
+            row=1, column=4, sticky="w", padx=(0, 14), pady=4
         )
 
     def _build_inventory_table(self) -> None:
         """Create the scrollable ttk.Treeview displaying inventory rows."""
-        table_frame = ttk.Frame(self.root, padding=(12, 4))
-        table_frame.grid(row=2, column=0, sticky="nsew")
-        table_frame.columnconfigure(0, weight=1)
-        table_frame.rowconfigure(0, weight=1)
+        outer = tk.Frame(self.root, bg=_BG_WINDOW, padx=16, pady=10)
+        outer.grid(row=3, column=0, sticky="nsew")
+        outer.columnconfigure(0, weight=1)
+        outer.rowconfigure(0, weight=1)
+
+        table_card = tk.Frame(
+            outer,
+            bg=_BG_CARD,
+            highlightbackground=_BORDER_SUBTLE,
+            highlightthickness=1,
+        )
+        table_card.grid(row=0, column=0, sticky="nsew")
+        table_card.columnconfigure(0, weight=1)
+        table_card.rowconfigure(0, weight=1)
 
         columns = (
             "sku",
@@ -188,35 +440,37 @@ class StockFlowGUI:
             "status",
         )
         self.tree = ttk.Treeview(
-            table_frame,
+            table_card,
             columns=columns,
             show="headings",
             selectmode="browse",
+            style="Stock.Treeview",
         )
 
         headings = {
-            "sku": ("SKU", 110, "w"),
-            "name": ("Name", 240, "w"),
-            "category": ("Category", 150, "w"),
+            "sku": ("SKU", 115, "w"),
+            "name": ("Name", 250, "w"),
+            "category": ("Category", 160, "w"),
             "quantity": ("Qty", 80, "e"),
-            "unit_price": ("Unit Price", 110, "e"),
-            "total_value": ("Total Value", 120, "e"),
-            "status": ("Status", 85, "center"),
+            "unit_price": ("Unit Price (£)", 120, "e"),
+            "total_value": ("Total Value (£)", 130, "e"),
+            "status": ("Status", 90, "center"),
         }
         for col_id, (text, width, anchor) in headings.items():
             self.tree.heading(col_id, text=text)
             self.tree.column(col_id, width=width, anchor=anchor)
 
+        self.tree.tag_configure("even", background=_BG_CARD, foreground=_TEXT_PRIMARY)
+        self.tree.tag_configure("odd", background=_BG_ZEBRA, foreground=_TEXT_PRIMARY)
         self.tree.tag_configure(
-            "low_stock", background="#FDE8E8", foreground="#9B1C1C"
+            "low_stock", background=_LOW_STOCK_BG, foreground=_LOW_STOCK_FG
         )
-        self.tree.tag_configure("normal_stock", background="#FFFFFF")
 
         v_scroll = ttk.Scrollbar(
-            table_frame, orient="vertical", command=self.tree.yview
+            table_card, orient="vertical", command=self.tree.yview
         )
         h_scroll = ttk.Scrollbar(
-            table_frame, orient="horizontal", command=self.tree.xview
+            table_card, orient="horizontal", command=self.tree.xview
         )
         self.tree.configure(
             yscrollcommand=v_scroll.set, xscrollcommand=h_scroll.set
@@ -227,39 +481,58 @@ class StockFlowGUI:
         h_scroll.grid(row=1, column=0, sticky="ew")
 
     def _build_action_bar(self) -> None:
-        """Create the CRUD and manual save action buttons."""
-        action_frame = ttk.Frame(self.root, padding=(12, 8))
-        action_frame.grid(row=3, column=0, sticky="ew")
+        """Create the styled CRUD and manual save action buttons."""
+        action_frame = tk.Frame(self.root, bg=_BG_WINDOW, padx=16, pady=4)
+        action_frame.grid(row=4, column=0, sticky="ew")
 
         ttk.Button(
-            action_frame, text="Add Product", command=self._on_add_product
+            action_frame,
+            text="+ Add Product",
+            style="Primary.TButton",
+            command=self._on_add_product,
         ).pack(side="left", padx=(0, 8))
         ttk.Button(
-            action_frame, text="Edit Selected", command=self._on_edit_selected
+            action_frame,
+            text="Edit Selected",
+            style="Neutral.TButton",
+            command=self._on_edit_selected,
         ).pack(side="left", padx=(0, 8))
         ttk.Button(
             action_frame,
             text="Delete Selected",
+            style="Danger.TButton",
             command=self._on_delete_selected,
         ).pack(side="left", padx=(0, 8))
         ttk.Button(
-            action_frame, text="Save Now", command=self._on_save_now
+            action_frame,
+            text="Save Now",
+            style="Success.TButton",
+            command=self._on_save_now,
         ).pack(side="right")
 
     def _build_status_bar(self) -> None:
-        """Create the bottom status bar displaying operation feedback."""
-        status_frame = ttk.Frame(self.root, padding=(12, 4, 12, 8))
-        status_frame.grid(row=4, column=0, sticky="ew")
-        ttk.Separator(status_frame, orient="horizontal").pack(
-            fill="x", pady=(0, 4)
-        )
-        ttk.Label(
-            status_frame, textvariable=self._status_var, anchor="w"
+        """Create the bottom status bar with subtle top border and crisp text."""
+        status_container = tk.Frame(self.root, bg=_BORDER_SUBTLE, pady=1)
+        status_container.grid(row=5, column=0, sticky="ew", pady=(8, 0))
+        status_container.columnconfigure(0, weight=1)
+
+        status_bar = tk.Frame(status_container, bg=_BG_STATUS, padx=16, pady=6)
+        status_bar.grid(row=0, column=0, sticky="ew")
+
+        tk.Label(
+            status_bar,
+            textvariable=self._status_var,
+            font=("Segoe UI", 9),
+            fg=_TEXT_SECONDARY,
+            bg=_BG_STATUS,
+            anchor="w",
         ).pack(fill="x")
 
     def _bind_events(self) -> None:
         """Wire keyboard, selection, and filter control callbacks."""
-        self._search_var.trace_add("write", lambda *_args: self._on_filter_changed())
+        self._search_var.trace_add(
+            "write", lambda *_args: self._on_filter_changed()
+        )
         self._category_combo.bind(
             "<<ComboboxSelected>>", lambda _event: self._on_filter_changed()
         )
@@ -296,22 +569,19 @@ class StockFlowGUI:
             return False
 
     def _update_summary_bar(self) -> None:
-        """Refresh top summary metrics from InventoryManager."""
+        """Refresh top KPI summary cards from InventoryManager."""
         summary = self.manager.get_summary()
-        self._summary_vars["total_skus"].set(
-            f"Total SKUs: {summary['total_skus']}"
+        self._summary_vars["total_skus"].set(str(summary["total_skus"]))
+        self._summary_vars["total_units"].set(str(summary["total_units"]))
+        self._summary_vars["total_value"].set(f"£{summary['total_value']:,.2f}")
+        self._summary_vars["low_stock_count"].set(str(summary["low_stock_count"]))
+        self._summary_vars["category_count"].set(str(summary["category_count"]))
+
+        low_stock_color = (
+            _DANGER_RED if summary["low_stock_count"] > 0 else _TEXT_PRIMARY
         )
-        self._summary_vars["total_units"].set(
-            f"Total Units: {summary['total_units']}"
-        )
-        self._summary_vars["total_value"].set(
-            f"Total Value: ${summary['total_value']:,.2f}"
-        )
-        self._summary_vars["low_stock_count"].set(
-            f"Low Stock: {summary['low_stock_count']}"
-        )
-        self._summary_vars["category_count"].set(
-            f"Categories: {summary['category_count']}"
+        self._summary_value_labels["low_stock_count"].configure(
+            fg=low_stock_color
         )
 
     def _update_category_options(self) -> None:
@@ -352,15 +622,19 @@ class StockFlowGUI:
         return products
 
     def refresh_table(self) -> list[Product]:
-        """Populate the Treeview with the current sorted/filtered product list."""
+        """Populate the Treeview with sorted/filtered products and row tags."""
         for item_id in self.tree.get_children():
             self.tree.delete(item_id)
 
         products = self._get_displayed_products()
-        for product in products:
+        for idx, product in enumerate(products):
             is_low = product.is_low_stock()
             status = "LOW" if is_low else "OK"
-            tag = "low_stock" if is_low else "normal_stock"
+            if is_low:
+                row_tag = "low_stock"
+            else:
+                row_tag = "even" if idx % 2 == 0 else "odd"
+
             self.tree.insert(
                 "",
                 "end",
@@ -370,16 +644,16 @@ class StockFlowGUI:
                     product.name,
                     product.category,
                     product.quantity,
-                    f"${product.unit_price:,.2f}",
-                    f"${product.total_value():,.2f}",
+                    f"£{product.unit_price:,.2f}",
+                    f"£{product.total_value():,.2f}",
                     status,
                 ),
-                tags=(tag,),
+                tags=(row_tag,),
             )
         return products
 
     def refresh_view(self) -> None:
-        """Refresh category options, summary bar, and inventory table."""
+        """Refresh category options, KPI summary cards, and inventory table."""
         self._update_category_options()
         self._update_summary_bar()
         self.refresh_table()
