@@ -8,6 +8,17 @@ from tkinter import messagebox, ttk
 
 from src.models import Product
 
+_BG_WINDOW = "#F1F5F9"
+_BG_HEADER = "#1E293B"
+_BG_CARD = "#FFFFFF"
+_BORDER_SUBTLE = "#CBD5E1"
+_TEXT_PRIMARY = "#0F172A"
+_TEXT_MUTED = "#94A3B8"
+_ACCENT_BLUE = "#2563EB"
+_ACCENT_BLUE_HOVER = "#1D4ED8"
+_SLATE_BTN = "#E2E8F0"
+_SLATE_BTN_HOVER = "#CBD5E1"
+
 
 class ProductDialog(tk.Toplevel):
     """Modal dialog for entering and validating Product attributes."""
@@ -33,6 +44,7 @@ class ProductDialog(tk.Toplevel):
             f"Edit Product — {product.sku}" if product else "Add New Product"
         )
         self.title(resolved_title)
+        self.configure(background=_BG_WINDOW)
         self.resizable(False, False)
         self.transient(parent)
 
@@ -51,6 +63,7 @@ class ProductDialog(tk.Toplevel):
             value=str(product.reorder_level) if product else "5"
         )
 
+        self._configure_styles()
         self._build_form()
         self.bind("<Return>", self._on_submit)
         self.bind("<Escape>", self._on_cancel)
@@ -59,42 +72,133 @@ class ProductDialog(tk.Toplevel):
         self.grab_set()
         self._focus_initial_field()
 
+    def _configure_styles(self) -> None:
+        """Ensure consistent clam ttk styles for dialog inputs and buttons."""
+        style = ttk.Style(self)
+        if style.theme_use() != "clam":
+            style.theme_use("clam")
+
+        style.configure(
+            "Dialog.TEntry",
+            fieldbackground="#FFFFFF",
+            foreground=_TEXT_PRIMARY,
+            bordercolor=_BORDER_SUBTLE,
+            padding=(6, 5),
+        )
+        style.configure(
+            "DialogPrimary.TButton",
+            font=("Segoe UI", 9, "bold"),
+            background=_ACCENT_BLUE,
+            foreground="#FFFFFF",
+            borderwidth=0,
+            padding=(14, 7),
+        )
+        style.map(
+            "DialogPrimary.TButton",
+            background=[("active", _ACCENT_BLUE_HOVER)],
+            foreground=[("active", "#FFFFFF")],
+        )
+        style.configure(
+            "DialogSecondary.TButton",
+            font=("Segoe UI", 9),
+            background=_SLATE_BTN,
+            foreground=_TEXT_PRIMARY,
+            borderwidth=0,
+            padding=(14, 7),
+        )
+        style.map(
+            "DialogSecondary.TButton",
+            background=[("active", _SLATE_BTN_HOVER)],
+            foreground=[("active", _TEXT_PRIMARY)],
+        )
+
     def _build_form(self) -> None:
-        """Construct the labeled form inputs and action buttons."""
-        container = ttk.Frame(self, padding=16)
-        container.grid(row=0, column=0, sticky="nsew")
+        """Construct the header banner, card form inputs, and action buttons."""
+        header = tk.Frame(self, bg=_BG_HEADER, padx=18, pady=12)
+        header.grid(row=0, column=0, sticky="ew")
+
+        heading_text = (
+            f"Edit Product ({self._sku_var.get()})"
+            if self._is_edit
+            else "Add New Product"
+        )
+        tk.Label(
+            header,
+            text=heading_text,
+            font=("Segoe UI", 12, "bold"),
+            fg="#FFFFFF",
+            bg=_BG_HEADER,
+            anchor="w",
+        ).pack(fill="x")
+        tk.Label(
+            header,
+            text="Enter product details below. All fields are validated.",
+            font=("Segoe UI", 9),
+            fg=_TEXT_MUTED,
+            bg=_BG_HEADER,
+            anchor="w",
+        ).pack(fill="x", pady=(2, 0))
+
+        outer = tk.Frame(self, bg=_BG_WINDOW, padx=16, pady=14)
+        outer.grid(row=1, column=0, sticky="nsew")
+
+        card = tk.Frame(
+            outer,
+            bg=_BG_CARD,
+            highlightbackground=_BORDER_SUBTLE,
+            highlightthickness=1,
+            padx=16,
+            pady=14,
+        )
+        card.grid(row=0, column=0, sticky="nsew")
 
         fields: list[tuple[str, tk.StringVar, bool]] = [
             ("SKU:", self._sku_var, self._is_edit),
             ("Product Name:", self._name_var, False),
             ("Category:", self._category_var, False),
             ("Quantity:", self._quantity_var, False),
-            ("Unit Price ($):", self._unit_price_var, False),
+            ("Unit Price (£):", self._unit_price_var, False),
             ("Reorder Level:", self._reorder_var, False),
         ]
 
         self._entries: dict[str, ttk.Entry] = {}
         for row_idx, (label_text, variable, readonly) in enumerate(fields):
-            ttk.Label(container, text=label_text).grid(
-                row=row_idx, column=0, sticky="w", padx=(0, 12), pady=5
+            tk.Label(
+                card,
+                text=label_text,
+                font=("Segoe UI", 9, "bold"),
+                fg=_TEXT_PRIMARY,
+                bg=_BG_CARD,
+                anchor="w",
+            ).grid(row=row_idx, column=0, sticky="w", padx=(0, 14), pady=6)
+
+            entry = ttk.Entry(
+                card,
+                textvariable=variable,
+                width=32,
+                font=("Segoe UI", 9),
+                style="Dialog.TEntry",
             )
-            entry = ttk.Entry(container, textvariable=variable, width=32)
             if readonly:
                 entry.configure(state="readonly")
-            entry.grid(row=row_idx, column=1, sticky="ew", pady=5)
+            entry.grid(row=row_idx, column=1, sticky="ew", pady=6)
             self._entries[label_text] = entry
 
-        button_frame = ttk.Frame(container)
-        button_frame.grid(
-            row=len(fields), column=0, columnspan=2, sticky="e", pady=(14, 0)
-        )
+        button_frame = tk.Frame(outer, bg=_BG_WINDOW)
+        button_frame.grid(row=1, column=0, sticky="e", pady=(12, 0))
 
         save_label = "Save Changes" if self._is_edit else "Add Product"
         ttk.Button(
-            button_frame, text="Cancel", command=self._on_cancel
+            button_frame,
+            text="Cancel",
+            style="DialogSecondary.TButton",
+            command=self._on_cancel,
         ).pack(side="right", padx=(8, 0))
         ttk.Button(
-            button_frame, text=save_label, command=self._on_submit
+            button_frame,
+            text=save_label,
+            style="DialogPrimary.TButton",
+            command=self._on_submit,
         ).pack(side="right")
 
     def _focus_initial_field(self) -> None:
