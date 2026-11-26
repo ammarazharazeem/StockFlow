@@ -1,0 +1,9 @@
+# StockFlow — Inventory & Stock Control System
+#
+# Runtime Dependencies:
+# StockFlow is built using the Python Standard Library (including tkinter for the GUI).
+# No external third-party runtime packages are required.
+#
+# Optional Development / Testing Dependencies:
+# pytest (optional, for running the unit test suite; unittest from the standard library is also supported)
+# pytest>=8.0.0
