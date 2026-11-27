@@ -109,8 +109,8 @@ def format_products_table(products: list[Product]) -> str:
                 product.name,
                 product.category,
                 str(product.quantity),
-                f"${product.unit_price:,.2f}",
-                f"${product.total_value():,.2f}",
+                f"£{product.unit_price:,.2f}",
+                f"£{product.total_value():,.2f}",
                 status,
             )
         )

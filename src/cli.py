@@ -265,7 +265,7 @@ class StockFlowCLI:
         print("\n--- Inventory Summary & Analytics ---")
         print(f"Total SKUs      : {summary['total_skus']}")
         print(f"Total Units     : {summary['total_units']}")
-        print(f"Total Value     : ${summary['total_value']:,.2f}")
+        print(f"Total Value     : £{summary['total_value']:,.2f}")
         print(f"Low-Stock Count : {summary['low_stock_count']}")
         print(f"Category Count  : {summary['category_count']}")
         print(f"Categories      : {categories_text}")
