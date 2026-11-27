@@ -1,0 +1,114 @@
+[
+  {
+    "sku": "EL-101",
+    "name": "27\" 4K IPS Monitor",
+    "category": "Electronics",
+    "quantity": 8,
+    "unit_price": 279.99,
+    "reorder_level": 4
+  },
+  {
+    "sku": "EL-102",
+    "name": "1080p USB Webcam Pro",
+    "category": "Electronics",
+    "quantity": 3,
+    "unit_price": 54.99,
+    "reorder_level": 5
+  },
+  {
+    "sku": "EL-103",
+    "name": "USB-C Multiport Dock",
+    "category": "Electronics",
+    "quantity": 14,
+    "unit_price": 49.95,
+    "reorder_level": 5
+  },
+  {
+    "sku": "NW-301",
+    "name": "8-Port Gigabit Switch",
+    "category": "Networking",
+    "quantity": 11,
+    "unit_price": 29.99,
+    "reorder_level": 4
+  },
+  {
+    "sku": "NW-302",
+    "name": "Wi-Fi 6 Dual-Band Router",
+    "category": "Networking",
+    "quantity": 2,
+    "unit_price": 89.5,
+    "reorder_level": 4
+  },
+  {
+    "sku": "NW-303",
+    "name": "Cat6 Ethernet Patch Cable 5m",
+    "category": "Networking",
+    "quantity": 35,
+    "unit_price": 7.49,
+    "reorder_level": 10
+  },
+  {
+    "sku": "OF-401",
+    "name": "A4 Copy Paper (500 Sheets)",
+    "category": "Office Supplies",
+    "quantity": 42,
+    "unit_price": 5.99,
+    "reorder_level": 15
+  },
+  {
+    "sku": "OF-402",
+    "name": "Ergonomic Mesh Desk Chair",
+    "category": "Office Supplies",
+    "quantity": 1,
+    "unit_price": 189.0,
+    "reorder_level": 3
+  },
+  {
+    "sku": "OF-403",
+    "name": "Whiteboard Dry-Erase Marker Pack",
+    "category": "Office Supplies",
+    "quantity": 24,
+    "unit_price": 8.99,
+    "reorder_level": 8
+  },
+  {
+    "sku": "PR-201",
+    "name": "Wireless Ergonomic Mouse",
+    "category": "Peripherals",
+    "quantity": 18,
+    "unit_price": 24.99,
+    "reorder_level": 6
+  },
+  {
+    "sku": "PR-202",
+    "name": "Mechanical UK Layout Keyboard",
+    "category": "Peripherals",
+    "quantity": 7,
+    "unit_price": 74.99,
+    "reorder_level": 5
+  },
+  {
+    "sku": "PR-203",
+    "name": "Noise-Cancelling USB Headset",
+    "category": "Peripherals",
+    "quantity": 9,
+    "unit_price": 44.95,
+    "reorder_level": 4
+  },
+  {
+    "sku": "ST-501",
+    "name": "1TB NVMe M.2 SSD",
+    "category": "Storage",
+    "quantity": 12,
+    "unit_price": 68.5,
+    "reorder_level": 5
+  },
+  {
+    "sku": "ST-502",
+    "name": "2TB Portable External HDD",
+    "category": "Storage",
+    "quantity": 0,
+    "unit_price": 64.99,
+    "reorder_level": 4
+  }
+]
